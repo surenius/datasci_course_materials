@@ -7,9 +7,9 @@ def lines(fp):
 
 def loadAfinn(sentFilePath):
   afinnfile = open(sentFilePath)
-  scores = {} # initialize an empty dictionary
+  scores = {}  # initialize an empty dictionary
   for line in afinnfile:
-    term, score  = line.split("\t")  # The file is tab-delimited. "\t" means "tab character"
+    term, score = line.split("\t")  # The file is tab-delimited. "\t" means "tab character"
     scores[term] = int(score)  # Convert the score to an integer.
   
   return scores  
@@ -22,33 +22,52 @@ def loadTweets(tweetsFilePath):
   for line in tfile:
     tweet = json.loads(line)
     if "text" in tweet:
-      cleartext = ''.join(ch for ch in tweet["text"].lower() if ch in allowed)
-      tweets.append(string.split(cleartext))
+      txt = tweet["text"].lower()
+      words = []
+      for word in string.split(txt):
+        if (allowed.issuperset(set(word))):
+          words.append(word)
+      tweets.append(words)
     else:
       tweets.append(list())
   
   return tweets
 
-def deriveSentiments(tweets, scores):
-  tweetScores = []
+def findNewTerms(tweets, scores, newTermsScores):
+  changed = False
   for tweet in tweets:
-    score = 0
-    # search for three-word phrases, then for two-word, then just words
-    skipwords = set()
-    
-    if tweet:
-      for l in [3, 2, 1]:
-        for i in xrange(len(tweet) - l + 1):
-          words = tweet[i:i+l]
-          term = string.join(words, ' ')
-          if term in scores and not term in skipwords:
-            skipwords.update(words)
-            score += scores[term]
+    if (findNewTermsInTweet(tweet, scores, newTermsScores)):
+      changed = True
+      
+  return changed
 
-    tweetScores.append(score)
-    
-  for v in tweetScores:
-    print v
+def findNewTermsInTweet(tweet, scores, newTermsScores):
+  changed = False
+  
+  for (i, term) in enumerate(tweet):
+    if len(term) > 2 and not (term in scores):
+      leftScore = 0
+      if (i > 0 and tweet[i - 1] in scores):
+        leftScore = scores[tweet[i - 1]]
+         
+      rightScore = 0  
+      if (i < (len(tweet) - 1) and tweet[i + 1] in scores):
+        rightScore = scores[tweet[i + 1]]
+      
+      if (leftScore != 0 or rightScore != 0):
+        score = 0
+        if leftScore == 0 and rightScore != 0:
+          score = rightScore
+        else:
+          if leftScore != 0 and rightScore == 0:
+            score = leftScore
+          else:
+            score = float(leftScore + rightScore) / 2
+        
+        newTermsScores[term] = score
+        changed = True
+      
+  return changed
 
 def main():
     sent_file = sys.argv[1]
@@ -57,7 +76,12 @@ def main():
     scores = loadAfinn(sent_file)
     tweets = loadTweets(tweet_file)
 
-    deriveSentiments(tweets, scores)
+    newTermsScores = {}
+    while (findNewTerms(tweets, scores, newTermsScores)):
+      pass
+    
+    for (term, score) in newTermsScores.items():
+      print term, score
 
 if __name__ == '__main__':
     main()
