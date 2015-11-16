@@ -22,12 +22,8 @@ def loadTweets(tweetsFilePath):
   for line in tfile:
     tweet = json.loads(line)
     if "text" in tweet:
-      txt = tweet["text"].lower()
-      words = []
-      for word in string.split(txt):
-        if (allowed.issuperset(set(word))):
-          words.append(word)
-      tweets.append(words)
+      cleartext = ''.join(ch for ch in tweet["text"].lower() if ch in allowed)
+      tweets.append(string.split(cleartext))
     else:
       tweets.append(list())
   
@@ -48,11 +44,21 @@ def findNewTermsInTweet(tweet, scores, newTermsScores):
     if len(term) > 2 and not (term in scores):
       leftScore = 0
       if (i > 0 and tweet[i - 1] in scores):
-        leftScore = scores[tweet[i - 1]]
+        leftTerm = tweet[i - 1]
+        if leftTerm in scores:
+          leftScore = scores[leftTerm]
+        else:
+          if leftTerm in newTermsScores:
+            leftScore = getNTScore(newTermsScores[leftTerm])
          
       rightScore = 0  
-      if (i < (len(tweet) - 1) and tweet[i + 1] in scores):
-        rightScore = scores[tweet[i + 1]]
+      if (i < (len(tweet) - 1)):
+        rightTerm = tweet[i + 1]
+        if rightTerm in scores:
+          rightScore = scores[rightTerm]
+        else:
+          if rightTerm in newTermsScores:
+            rightScore = getNTScore(newTermsScores[rightTerm])
       
       if (leftScore != 0 or rightScore != 0):
         score = 0
@@ -64,10 +70,24 @@ def findNewTermsInTweet(tweet, scores, newTermsScores):
           else:
             score = float(leftScore + rightScore) / 2
         
-        newTermsScores[term] = score
-        changed = True
+        if term in newTermsScores:
+          if not score in newTermsScores[term]:
+            newTermsScores[term].append(score)
+            changed = True
+          else:
+            pass
+        else:
+          newTermsScores[term] = [score]
+          changed = True
+          
       
   return changed
+
+def getNTScore(termScores):
+  for v in termScores:
+    if float(v) != 0.0:
+      return v
+  return 0
 
 def main():
     sent_file = sys.argv[1]
@@ -81,7 +101,7 @@ def main():
       pass
     
     for (term, score) in newTermsScores.items():
-      print term, score
+      print term, (float(sum(score))/len(score) if score else 0)
 
 if __name__ == '__main__':
     main()
