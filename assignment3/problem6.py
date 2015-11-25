@@ -16,8 +16,12 @@ def mapper(record):
     j = record[2]
     value = record[3]
     if (matrix == "a"):
+      for k in range(j):
+        mr.emit_intermediate((i, k), (matrix, 0))
       mr.emit_intermediate((i, j), (matrix, value))
     else:
+      for k in range(i):
+        mr.emit_intermediate((j, k), (matrix, 0))
       mr.emit_intermediate((j, i), (matrix, value))
       
 
