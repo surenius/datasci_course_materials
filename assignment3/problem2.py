@@ -2,8 +2,9 @@ import MapReduce
 import sys
 
 """
-Problem 1: building inverted index
+Problem 2: join
 """
+from timeit import itertools
 
 mr = MapReduce.MapReduce()
 
@@ -11,18 +12,26 @@ mr = MapReduce.MapReduce()
 # Do not modify above this line
 
 def mapper(record):
-    # key: (table, order_id)
-    # value: list of tuples (db records)
-    key = (record[0], record[1])
-    value = record[1]
-    attr = record[2,]
-    mr.emit_intermediate(key, attr)
+    # key: order_id
+    # value: tuple (table, attr)
+    key = record[1]
+    mr.emit_intermediate(key, record)
 
 def reducer(key, list_of_values):
-    # key: word
-    # value: list of document IDs
-    uniqueDocIds = list(set(list_of_values))
-    mr.emit((key, uniqueDocIds))
+    # key: order_id
+    # value: list of tuples (table, attr)
+    recs = {}
+    for value in list_of_values:
+      table = value[0]
+      if not table in recs:
+        recs[table] = []
+      recs[table].append(value)
+
+    leftTable = recs.values()[0]    
+    righTable = recs.values()[1]
+    
+    for r in itertools.product(leftTable, righTable):
+      mr.emit(r[1] + r[0])
 
 # Do not modify below this line
 # =============================
