@@ -10,15 +10,17 @@ mr = MapReduce.MapReduce()
 # Do not modify above this line
 
 def mapper(record):
-    # key: person
-    # value: 1
-    mr.emit_intermediate(record[0], record)
+    (personA, personB) = record
+    mr.emit_intermediate((personA, personB), 1)
+    mr.emit_intermediate((personB, personA), 1)
 
 def reducer(key, list_of_values):
-    # key: person
-    # value: (personA, personB pairs)
-    ...
-    mr.emit((key, sum(list_of_values)))
+    # key: (personA, personB)
+    # values: list of 1s
+
+    (person, friend) = key
+    if (sum(list_of_values) == 1):
+      mr.emit((friend, person))
 
 # Do not modify below this line
 # =============================
